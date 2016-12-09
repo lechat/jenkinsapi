@@ -29,6 +29,14 @@ HG_URL = './scm/source'
 GIT_BRANCH = './scm/branches/hudson.plugins.git.BranchSpec/name'
 HG_BRANCH = './scm/branch'
 DEFAULT_HG_BRANCH_NAME = 'default'
+KNOWNBUILDTYPES = [
+    "lastStableBuild",
+    "lastSuccessfulBuild",
+    "lastBuild",
+    "lastCompletedBuild",
+    "firstBuild",
+    "lastFailedBuild"
+]
 
 log = logging.getLogger(__name__)
 
@@ -223,6 +231,20 @@ class Job(JenkinsBase, MutableJenkinsThing):
         """
         Gets a buildid for a given type of build
         """
+        if buildtype not in KNOWNBUILDTYPES:
+            raise ValueError(
+                'Unknown build info type: %s' % buildtype)
+
+        data = self.poll(tree='%s[number]' % buildtype)
+
+        if not data.get(buildtype):
+            raise NoBuildData(buildtype)
+        return data[buildtype]["number"]
+
+    def _build_for_type(self, buildtype):
+        """
+        Returns a Build object for a given type of build
+        """
         KNOWNBUILDTYPES = [
             "lastStableBuild",
             "lastSuccessfulBuild",
@@ -230,14 +252,16 @@ class Job(JenkinsBase, MutableJenkinsThing):
             "lastCompletedBuild",
             "firstBuild",
             "lastFailedBuild"]
-        assert buildtype in KNOWNBUILDTYPES, ('Unknown build info type: %s'
-                                              % buildtype)
+        if buildtype not in KNOWNBUILDTYPES:
+            raise ValueError(
+                'Unknown build info type: %s' % buildtype)
 
-        data = self.poll(tree='%s[number]' % buildtype)
+        data = self.poll(tree='%s[number,url]' % buildtype)
 
         if not data.get(buildtype):
             raise NoBuildData(buildtype)
-        return data[buildtype]["number"]
+        return Build(
+            data[buildtype]["url"], data[buildtype]["number"], job=self)
 
     def get_first_buildnumber(self):
         """
@@ -276,7 +300,13 @@ class Job(JenkinsBase, MutableJenkinsThing):
         return self._buildid_for_type("lastCompletedBuild")
 
     def get_build_dict(self):
+        """
+        Return dictionary containing all builds.
+
+        Dictionary keys are build numbers, values are urls
+        """
         builds = self.poll(tree='builds[number,url]')
+
         if not builds:
             raise NoBuildData(repr(self))
         builds = self._add_missing_builds(builds)
@@ -285,9 +315,7 @@ class Job(JenkinsBase, MutableJenkinsThing):
         if builds and last_build and \
                 builds[0]['number'] != last_build['number']:
             builds = [last_build] + builds
-        # FIXME SO how is this supposed to work if build is false-y?
-        # I don't think that builds *can* be false here, so I don't
-        # understand the test above.
+
         return dict((build["number"], build["url"]) for build in builds)
 
     def get_build_by_params(self, build_params, order=1):
@@ -297,9 +325,10 @@ class Job(JenkinsBase, MutableJenkinsThing):
             raise ValueError(
                 'Direction should be ascending or descending (1/-1)')
 
+        build_dict = self.get_build_dict()
         for number in range(first_build_number,
                             last_build_number + 1)[::order]:
-            build = self.get_build(number)
+            build = Build(build_dict[number], number, job=self)
             if build.get_params() == build_params:
                 return build
 
@@ -335,26 +364,25 @@ class Job(JenkinsBase, MutableJenkinsThing):
         """
         Get the last stable build
         """
-        bn = self.get_last_stable_buildnumber()
-        return self.get_build(bn)
+        return self._build_for_type("lastStableBuild")
 
     def get_last_good_build(self):
         """
         Get the last good build
         """
-        bn = self.get_last_good_buildnumber()
-        return self.get_build(bn)
+        return self._build_for_type("lastSuccessfulBuild")
 
     def get_last_build(self):
         """
         Get the last build
         """
-        bn = self.get_last_buildnumber()
-        return self.get_build(bn)
+        return self._build_for_type("lastBuild")
 
     def get_first_build(self):
-        bn = self.get_first_buildnumber()
-        return self.get_build(bn)
+        """
+        Get the first build
+        """
+        return self._build_for_type("firstBuild")
 
     def get_last_build_or_none(self):
         """
@@ -369,8 +397,7 @@ class Job(JenkinsBase, MutableJenkinsThing):
         """
         Get the last build regardless of status
         """
-        bn = self.get_last_completed_buildnumber()
-        return self.get_build(bn)
+        return self._build_for_type("lastCompletedBuild")
 
     def get_buildnumber_for_revision(self, revision, refresh=False):
         """
