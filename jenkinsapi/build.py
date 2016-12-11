@@ -104,7 +104,7 @@ class Build(JenkinsBase):
             parameters = {}
             for elem in actions:
                 if jenkins_1x:
-                    if 'parameters' in  elem:
+                    if 'parameters' in elem:
                         parameters = elem['parameters']
                         break
                 else:
