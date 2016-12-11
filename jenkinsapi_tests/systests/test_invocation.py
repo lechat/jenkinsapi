@@ -7,9 +7,17 @@ import pytest
 from jenkinsapi.build import Build
 from jenkinsapi.queue import QueueItem
 from jenkinsapi_tests.test_utils.random_strings import random_string
-from jenkinsapi_tests.systests.job_configs import LONG_RUNNING_JOB
-from jenkinsapi_tests.systests.job_configs import SHORTISH_JOB, EMPTY_JOB
-from jenkinsapi.custom_exceptions import BadParams, NotFound
+from jenkinsapi_tests.systests.job_configs import (
+    LONG_RUNNING_JOB,
+    SHORTISH_JOB,
+    EMPTY_JOB,
+    JOB_WITH_PARAMETERS
+)
+from jenkinsapi.custom_exceptions import (
+    BadParams,
+    NotFound,
+    NoBuildData
+)
 
 
 log = logging.getLogger(__name__)
@@ -118,3 +126,27 @@ def test_give_params_on_non_parameterized_job(jenkins):
     job = jenkins.create_job(job_name, EMPTY_JOB)
     with pytest.raises(BadParams):
         job.invoke(build_params={'foo': 'bar', 'baz': 99})
+
+
+def test_find_build_by_params(jenkins):
+    job_name = 'find_by_param___%s' % random_string()
+    job = jenkins.create_job(job_name, JOB_WITH_PARAMETERS)
+
+    param_list = [
+        {'B': 'First'},
+        {'B': 'Second'},
+        {'B': 'Third'}
+    ]
+
+    for invocation in range(3):
+        qq = job.invoke(build_params=param_list[invocation])
+        qq.block_until_complete(delay=1)
+
+    for invocation in range(3):
+        f_build = job.get_build(invocation+1)
+        f_build_by_param = job.get_build_by_params(param_list[invocation])
+
+        assert f_build.get_number() == f_build_by_param.get_number()
+
+    with pytest.raises(NoBuildData):
+        f_build_by_param = job.get_build_by_params({'B': 'Unknown'})

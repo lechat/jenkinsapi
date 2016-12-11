@@ -98,13 +98,20 @@ class Build(JenkinsBase):
         #     {'_class': 'hudson.model.StringParameterValue',
         #      'value': '12',
         #      'name': 'FOO_BAR_BAZ'}]}
+        jenkins_1x = self.job.jenkins.version.startswith('1')
         actions = self._data.get('actions')
         if actions:
             parameters = {}
             for elem in actions:
-                if elem.get('_class') == 'hudson.model.ParametersAction':
-                    parameters = elem.get('parameters', {})
-                    break
+                if jenkins_1x:
+                    if 'parameters' in  elem:
+                        parameters = elem['parameters']
+                        break
+                else:
+                    if elem.get('_class') == 'hudson.model.ParametersAction':
+                        parameters = elem.get('parameters', {})
+                        break
+
             return {pair['name']: pair['value'] for pair in parameters}
 
     def get_changeset_items(self):
