@@ -24,7 +24,7 @@ class CrumbsJenkins(Jenkins):
             baseurl=baseurl,
             ssl_verify=ssl_verify
         )
-        super(CRSSJenkins, self).__init__(
+        super(CrumbsJenkins, self).__init__(
             baseurl=baseurl, username=username, password=password,
             requester=requester, lazy=lazy, ssl_verify=ssl_verify
         )
