@@ -24,9 +24,10 @@ class Views(object):
     PIPELINE_VIEW = ('au.com.centrumsystems.hudson.'
                      'plugin.buildpipeline.BuildPipelineView')
 
-    def __init__(self, jenkins):
+    def __init__(self, jenkins, lazy=False):
         self.jenkins = jenkins
         self._data = None
+        self.lazy = lazy
 
     def poll(self, tree=None):
         self._data = self.jenkins.poll(tree='views[name,url]'
@@ -54,10 +55,13 @@ class Views(object):
                 raise TypeError('Job %s does not exist in Jenkins' % job_name)
 
     def __getitem__(self, view_name):
-        self.poll()
+        if not self.lazy or self._data is None:
+            self.poll()
         for row in self._data.get('views', []):
             if row['name'] == view_name:
-                return View(row['url'], row['name'], self.jenkins)
+                return View(
+                    row['url'], row['name'], self.jenkins, lazy=self.lazy
+                )
 
         raise KeyError('View %s not found' % view_name)
 
@@ -65,12 +69,13 @@ class Views(object):
         """
         Get the names & objects for all views
         """
-        self.poll()
+        if not self.lazy or self._data is None:
+            self.poll()
         for row in self._data.get('views', []):
             name = row['name']
             url = row['url']
 
-            yield name, View(url, name, self.jenkins)
+            yield name, View(url, name, self.jenkins, lazy=self.lazy)
 
     def __contains__(self, view_name):
         """
@@ -82,7 +87,8 @@ class Views(object):
         """
         Get the names of all available views
         """
-        self.poll()
+        if not self.lazy or self._data is None:
+            self.poll()
         for row in self._data.get('views', []):
             yield row['name']
 

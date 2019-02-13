@@ -166,6 +166,9 @@ class Requester(object):
         if not headers and not files:
             headers = {'Content-Type': 'application/x-www-form-urlencoded'}
 
+        if not allow_redirects and 302 not in valid:
+            valid.append(302)
+
         assert data is not None, "Post messages must have data"
 
         response = self.post_url(

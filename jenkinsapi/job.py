@@ -40,7 +40,7 @@ class Job(JenkinsBase, MutableJenkinsThing):
     A job can hold N builds which are the actual execution environments
     """
 
-    def __init__(self, url, name, jenkins_obj):
+    def __init__(self, url, name, jenkins_obj, lazy=False):
         self.name = name
         self.jenkins = jenkins_obj
         self._revmap = None
@@ -65,6 +65,7 @@ class Job(JenkinsBase, MutableJenkinsThing):
             None: lambda element_tree: []
         }
         self.url = url
+        self.lazy = lazy
         JenkinsBase.__init__(self, self.url)
 
     def __str__(self):
@@ -107,6 +108,10 @@ class Job(JenkinsBase, MutableJenkinsThing):
         """
         if not data.get("builds"):
             return data
+
+        if self.lazy:
+            return data
+
         # do not call _buildid_for_type here: it would poll and do an infinite
         # loop
         oldest_loaded_build_number = data["builds"][-1]["number"]

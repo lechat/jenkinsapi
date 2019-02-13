@@ -13,30 +13,31 @@ ADMIN_PASSWORD = 'admin'
 
 # Extra plugins required by the systests
 PLUGIN_DEPENDENCIES = [
-    "http://updates.jenkins-ci.org/latest/"
+    "http://updates.jenkins.io/latest/"
     "apache-httpcomponents-client-4-api.hpi",
-    "http://updates.jenkins-ci.org/latest/jsch.hpi",
-    "http://updates.jenkins-ci.org/latest/trilead-api.hpi",
-    "http://updates.jenkins-ci.org/latest/workflow-api.hpi",
-    "http://updates.jenkins-ci.org/latest/display-url-api.hpi",
-    "http://updates.jenkins-ci.org/latest/workflow-step-api.hpi",
-    "http://updates.jenkins-ci.org/latest/workflow-scm-step.hpi",
-    "http://updates.jenkins-ci.org/latest/icon-shim.hpi",
-    "http://updates.jenkins-ci.org/latest/junit.hpi",
-    "http://updates.jenkins-ci.org/latest/script-security.hpi",
-    "http://updates.jenkins-ci.org/latest/matrix-project.hpi",
-    "http://updates.jenkins-ci.org/latest/credentials.hpi",
-    "http://updates.jenkins-ci.org/latest/ssh-credentials.hpi",
-    "http://updates.jenkins-ci.org/latest/scm-api.hpi",
-    "http://updates.jenkins-ci.org/latest/mailer.hpi",
-    "http://updates.jenkins-ci.org/latest/git.hpi",
-    "http://updates.jenkins-ci.org/latest/git-client.hpi",
-    "https://updates.jenkins-ci.org/latest/nested-view.hpi",
-    "https://updates.jenkins-ci.org/latest/ssh-slaves.hpi",
-    "https://updates.jenkins-ci.org/latest/structs.hpi",
-    "http://updates.jenkins-ci.org/latest/plain-credentials.hpi",
-    "http://updates.jenkins-ci.org/latest/envinject.hpi",
-    "http://updates.jenkins-ci.org/latest/envinject-api.hpi"
+    "https://updates.jenkins.io/latest/jsch.hpi",
+    "https://updates.jenkins.io/latest/trilead-api.hpi",
+    "https://updates.jenkins.io/latest/workflow-api.hpi",
+    "https://updates.jenkins.io/latest/display-url-api.hpi",
+    "https://updates.jenkins.io/latest/workflow-step-api.hpi",
+    "https://updates.jenkins.io/latest/workflow-scm-step.hpi",
+    "https://updates.jenkins.io/latest/icon-shim.hpi",
+    "https://updates.jenkins.io/latest/junit.hpi",
+    "https://updates.jenkins.io/latest/script-security.hpi",
+    "https://updates.jenkins.io/latest/matrix-project.hpi",
+    "https://updates.jenkins.io/latest/credentials.hpi",
+    "https://updates.jenkins.io/latest/ssh-credentials.hpi",
+    "https://updates.jenkins.io/latest/scm-api.hpi",
+    "https://updates.jenkins.io/latest/mailer.hpi",
+    "https://updates.jenkins.io/latest/git.hpi",
+    "https://updates.jenkins.io/latest/git-client.hpi",
+    "https://updates.jenkins.io/latest/nested-view.hpi",
+    "https://updates.jenkins.io/latest/ssh-slaves.hpi",
+    "https://updates.jenkins.io/latest/structs.hpi",
+    "https://updates.jenkins.io/latest/plain-credentials.hpi",
+    "https://updates.jenkins.io/latest/envinject.hpi",
+    "https://updates.jenkins.io/latest/envinject-api.hpi",
+    "https://updates.jenkins.io/latest/jdk-tool.hpi"
 ]
 
 
@@ -122,7 +123,8 @@ def launched_jenkins():
 def jenkins(launched_jenkins):
     url = launched_jenkins.jenkins_url
 
-    jenkins_instance = Jenkins(url)
+    use_lazy = os.environ.get('LAZY_CALLS', 'False').lower() == 'true'
+    jenkins_instance = Jenkins(url, lazy=use_lazy)
 
     _delete_all_jobs(jenkins_instance)
     _delete_all_views(jenkins_instance)

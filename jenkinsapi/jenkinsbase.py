@@ -45,7 +45,8 @@ class JenkinsBase(object):
         """
         if not isinstance(other, self.__class__):
             return False
-        return other.baseurl == self.baseurl
+        return JenkinsBase.strip_trailing_slash(other.baseurl) == \
+            JenkinsBase.strip_trailing_slash(self.baseurl)
 
     @classmethod
     def strip_trailing_slash(cls, url):

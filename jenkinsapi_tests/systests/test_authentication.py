@@ -9,7 +9,7 @@ from requests import HTTPError as REQHTTPError
 from jenkinsapi.jenkins import Jenkins
 
 
-def test_normal_uthentication(jenkins_admin_admin):
+def test_normal_authentication(jenkins_admin_admin):
     # No problem with the righ user/pass
     jenkins_user = Jenkins(jenkins_admin_admin.baseurl,
                            jenkins_admin_admin.username,

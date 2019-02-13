@@ -18,9 +18,10 @@ class Jobs(object):
     jenkinsapi.Job objects.
     """
 
-    def __init__(self, jenkins):
+    def __init__(self, jenkins, lazy=False):
         self.jenkins = jenkins
         self._data = []
+        self.lazy = lazy
 
     def _del_data(self, job_name):
         if not self._data:
@@ -47,7 +48,8 @@ class Jobs(object):
                 delete_job_url = self[job_name].get_delete_url()
                 self.jenkins.requester.post_and_confirm_status(
                     delete_job_url,
-                    data='some random bytes...'
+                    data='some random bytes...',
+                    allow_redirects=False
                 )
 
                 self._del_data(job_name)
@@ -59,7 +61,8 @@ class Jobs(object):
                     delete_job_url = self[job_name].get_delete_url()
                     self.jenkins.requester.post_and_confirm_status(
                         delete_job_url,
-                        data='some random bytes...'
+                        data='some random bytes...',
+                        allow_redirects=False
                     )
                     self._del_data(job_name)
 
@@ -83,7 +86,10 @@ class Jobs(object):
                         Job.get_full_name_from_url_and_baseurl(
                             job_row['url'],
                             self.jenkins.baseurl) == job_name][0]
-            return Job(job_data['url'], job_data['name'], self.jenkins)
+            return Job(
+                job_data['url'], job_data['name'],
+                self.jenkins, lazy=self.lazy
+            )
         else:
             raise UnknownJob(job_name)
 
@@ -123,7 +129,7 @@ class Jobs(object):
         if not self._data:
             self._data = self.poll().get('jobs', [])
         for row in self._data:
-            yield Job(row['url'], row['name'], self.jenkins)
+            yield Job(row['url'], row['name'], self.jenkins, lazy=self.lazy)
 
     def keys(self):
         """

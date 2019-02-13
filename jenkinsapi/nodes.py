@@ -19,11 +19,12 @@ class Nodes(JenkinsBase):
     Class to hold information on a collection of nodes
     """
 
-    def __init__(self, baseurl, jenkins_obj):
+    def __init__(self, baseurl, jenkins_obj, lazy=False):
         """
         Handy access to all of the nodes on your Jenkins server
         """
         self.jenkins = jenkins_obj
+        self.lazy = lazy
         JenkinsBase.__init__(self, baseurl.rstrip('/')
                              if '/computer' in baseurl
                              else baseurl.rstrip('/') + '/computer')

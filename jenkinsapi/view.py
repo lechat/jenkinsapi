@@ -18,10 +18,15 @@ class View(JenkinsBase):
     View class
     """
 
-    def __init__(self, url, name, jenkins_obj):
+    def __init__(self, url, name, jenkins_obj, lazy=False):
         self.name = name
         self.jenkins_obj = jenkins_obj
-        JenkinsBase.__init__(self, url)
+        self.lazy = lazy
+        self._data = None
+        if not self.lazy:
+            JenkinsBase.__init__(self, url)
+        else:
+            self.baseurl = url
         self.deleted = False
 
     def __len__(self):
@@ -36,7 +41,7 @@ class View(JenkinsBase):
     def __getitem__(self, job_name):
         assert isinstance(job_name, str)
         api_url = self.python_api_url(self.get_job_url(job_name))
-        return Job(api_url, job_name, self.jenkins_obj)
+        return Job(api_url, job_name, self.jenkins_obj, self.lazy)
 
     def __contains__(self, job_name):
         """
@@ -49,7 +54,9 @@ class View(JenkinsBase):
         Remove this view object
         """
         url = "%s/doDelete" % self.baseurl
-        self.jenkins_obj.requester.post_and_confirm_status(url, data='')
+        self.jenkins_obj.requester.post_and_confirm_status(
+            url, data='', allow_redirects=False
+        )
         self.jenkins_obj.poll()
         self.deleted = True
 
@@ -69,6 +76,9 @@ class View(JenkinsBase):
         return [a for a in self.iteritems()]
 
     def _get_jobs(self):
+        if not self.lazy or self._data is None:
+            self.poll()
+
         if 'jobs' in self._data:
             for viewdict in self._data["jobs"]:
                 yield viewdict["name"], viewdict["url"]
@@ -127,6 +137,7 @@ class View(JenkinsBase):
             url,
             data={},
             params=params)
+
         self.poll()
         log.debug(msg='Job "%s" has been added to a view "%s"' %
                   (job.name, self.name))
@@ -143,16 +154,20 @@ class View(JenkinsBase):
         if job_name not in self:
             return False
 
-        url = '%s/removeJobFromView' % self.baseurl
+        url = (
+            '%s/removeJobFromView'
+            % JenkinsBase.strip_trailing_slash(self.baseurl)
+        )
         params = {'name': job_name}
 
         self.get_jenkins_obj().requester.post_and_confirm_status(
             url,
             data={},
             params=params)
+
         self.poll()
         log.debug(
-            msg='Job "%s" has been added to a view "%s"'
+            msg='Job "%s" has been removed from a view "%s"'
             % (job_name, self.name)
         )
         return True

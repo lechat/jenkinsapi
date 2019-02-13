@@ -10,6 +10,8 @@ python:
 env:
 - JENKINS_VERSION=stable
 - JENKINS_VERSION=latest
+- LAZY_CALLS=True
+- LAZY_CALLS=False
 before_install:
 - jdk_switcher use oraclejdk8
 install:

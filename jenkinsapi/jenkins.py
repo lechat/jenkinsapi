@@ -74,7 +74,8 @@ class Jenkins(JenkinsBase):
 
     def _clone(self):
         return Jenkins(self.baseurl, username=self.username,
-                       password=self.password, requester=self.requester)
+                       password=self.password, requester=self.requester,
+                       lazy=self.lazy)
 
     def base_server_url(self):
         if config.JENKINS_API in self.baseurl:
@@ -103,7 +104,8 @@ class Jenkins(JenkinsBase):
         return self
 
     def get_jenkins_obj_from_url(self, url):
-        return Jenkins(url, self.username, self.password, self.requester)
+        return Jenkins(url, self.username, self.password, self.requester,
+                       lazy=self.lazy)
 
     def get_create_url(self):
         # This only ever needs to work on the base object
@@ -116,7 +118,7 @@ class Jenkins(JenkinsBase):
     @property
     def jobs(self):
         if self.jobs_container is None:
-            self.jobs_container = Jobs(self)
+            self.jobs_container = Jobs(self, lazy=self.lazy)
 
         return self.jobs_container
 
@@ -215,7 +217,7 @@ class Jenkins(JenkinsBase):
 
     @property
     def views(self):
-        return Views(self)
+        return Views(self, lazy=self.lazy)
 
     def get_view_by_url(self, str_view_url):
         # for nested view
@@ -275,7 +277,7 @@ class Jenkins(JenkinsBase):
         return Queue(queue_url, self)
 
     def get_nodes(self):
-        return Nodes(self.baseurl, self)
+        return Nodes(self.baseurl, self, lazy=self.lazy)
 
     @property
     def nodes(self):
@@ -541,14 +543,19 @@ class Jenkins(JenkinsBase):
 
         response = self.requester.post_and_confirm_status(url, data=data)
         if response.status_code != 200:
-            raise JenkinsAPIException('Unexpected response %d.' % response.status_code)
+            raise JenkinsAPIException(
+                'Unexpected response %d.' % response.status_code
+            )
 
         return response.text
 
     def use_auth_cookie(self):
-        assert (self.username and
-                self.baseurl), 'Please provide jenkins url, username '\
-                               'and password to get the session ID cookie.'
+        if not all([self.baseurl, self.username, self.password]):
+            log.critical(
+                'Please provide jenkins url, username '
+                'and password to get the session ID cookie.'
+            )
+            raise JenkinsAPIException('Username and password required')
 
         login_url = 'j_acegi_security_check'
         jenkins_url = '{0}/{1}'.format(self.baseurl, login_url)
@@ -572,9 +579,9 @@ class Jenkins(JenkinsBase):
                         cookie = self.extract_cookie(value)
 
                 req.headers['Cookie'] = cookie
-                result = HTTPRedirectHandler.http_error_302(self, req, fp,
-                                                            code, msg,
-                                                            headers)
+                result = HTTPRedirectHandler.http_error_302(
+                    self, req, fp, code, msg, headers
+                )
                 result.orig_status = code
                 result.orig_headers = headers
                 result.cookie = cookie
